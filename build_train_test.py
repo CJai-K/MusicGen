@@ -17,15 +17,17 @@ def load_data(tensor_path):
             continue
         with open(tensor_path+f,'rb') as p_file:
             song = pickle.load(p_file)
-            ta = tf.TensorArray(tf.float32,size=0,dynamic_size=True)
+            song_dataset = tf.data.Dataset.from_tensor_slices(song)
+            print(song_dataset.cardinality())
+            #ta = tf.TensorArray(tf.float32,size=0,dynamic_size=True)
 
-            lengths = calculate_chunk_size(song.get_shape()[0],seq_len)
-            ta = ta.split(value=song,lengths=lengths)
-            for i in range(ta.size()):
-                data.append(ta.read(i))
-    np.random.shuffle(data)
+            #lengths = calculate_chunk_size(song.get_shape()[0],seq_len)
+            #ta = ta.split(value=song,lengths=lengths)
+            #for i in range(ta.size()):
+            #    data.append(ta.read(i))
+    dataset = tf.data.Dataset.from_tensor_slices(data)
 
-    return data
+    return dataset
 
 #helper method for TensorArray.Split(); requires 1-d array of lengths to be sum of total tensor length
 def calculate_chunk_size(tensor_len,chunk_len):
@@ -63,6 +65,7 @@ def split_train_test(x,y):
 
 if __name__ == '__main__':
     data = load_data(tensor_path)
+    print(data.cardinality())
     x,y = split_input_target(data)
     x_train,x_test,y_train,y_test = split_train_test(x,y)
 
