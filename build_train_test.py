@@ -29,6 +29,9 @@ def load_data(tensor_path):
         dataset = dataset.concatenate(data[i])
 
     dataset = dataset.map(split_input_target)
+
+
+
     return dataset
 
 #helper method for TensorArray.Split(); requires 1-d array of lengths to be sum of total tensor length
