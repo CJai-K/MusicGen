@@ -1,0 +1,2 @@
+<TakeDataset shapes: ((999, 2), (999, 2)), types: (tf.float32, tf.float32)>
+tf.Tensor(300, shape=(), dtype=int64)

@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 import tensorflow as tf
 from tensorflow import audio
+from tensorflow import keras
 import sys
 import pickle
 import os
 import numpy as np
 
+EPOCHS = 3
+BATCH_SIZE = 20
 seq_len = 1000 #global variable for chunk size
 tensor_path = 'tensors/' #path to tensors
+BUFFER_SIZE = 1000
 
 def load_data(tensor_path):
     data = [] #list of data chunks
@@ -29,7 +33,7 @@ def load_data(tensor_path):
         dataset = dataset.concatenate(data[i])
 
     dataset = dataset.map(split_input_target)
-
+    dataset = dataset.shuffle(BUFFER_SIZE).batch(BATCH_SIZE,drop_remainder=True)
 
 
     return dataset
@@ -55,6 +59,23 @@ def split_input_target(chunk):
 
     return x,y
 
+def loss(labels,logits):
+    return tf.keras.losses.sparse_categorical_crossentropy(labels,logits.set_shape(labels.get_shape()),from_logits=True)
+
+def build_nn(in_shape):
+    model = keras.Sequential()
+    #model.add(keras.layers.Embedding())
+    model.add(keras.layers.InputLayer(input_shape=in_shape,batch_size=BATCH_SIZE))
+    model.add(keras.layers.LSTM(100))
+    model.add(keras.layers.Dense(100))
+    model.add(keras.layers.Dense(1998))
+    model.add(keras.layers.Reshape(in_shape))
+    model.compile(optimizer='Adam',loss='categorical_crossentropy')
+
+    print(model.summary())
+    return model
+
+
 def split_train_test(x,y):
     print(len(x),len(y))
     x_train = x[:int(len(x)*.8)]
@@ -66,9 +87,25 @@ def split_train_test(x,y):
 
 if __name__ == '__main__':
     data = load_data(tensor_path)
-    print(data.cardinality())
-    #x,y = split_input_target(data)
-    #x_train,x_test,y_train,y_test = split_train_test(x,y)
-
     #with open('data_file.p','wb') as f:
-     #   pickle.dump([x_train,x_test,y_train,y_test],f)
+       # pickle.dump(data,f)
+
+
+
+
+
+    data_shape = [x[0] for x in data.take(1).as_numpy_iterator()][0].shape
+    print(data_shape)
+    model = build_nn(tuple(list(data_shape)[1:]))
+
+
+    # Directory where the checkpoints will be saved
+    checkpoint_dir = './training_checkpoints'
+    # Name of the checkpoint files
+    checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
+
+    checkpoint_callback=tf.keras.callbacks.ModelCheckpoint(
+    filepath=checkpoint_prefix,save_weights_only=True)
+
+    history = model.fit(data, epochs=EPOCHS, callbacks=[checkpoint_callback])
+
